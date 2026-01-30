@@ -1,0 +1,5 @@
+{
+    "chat.instructionsFilesLocations": {
+        ".github/agents/copilot-instructions.md": true
+    }
+}

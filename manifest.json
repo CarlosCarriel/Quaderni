@@ -1,0 +1,36 @@
+﻿{
+  "manifest_version": 3,
+  "name": "Aletheia rev_1.4 - Asistente Local",
+  "version": "1.4",
+  "description": "Arquitectura de Interfaz Dual para Ciencia de Datos. Integra un Panel de Control y un Lente Inmersivo (Overlay) con inferencia local hermética.",
+  "author": "Principios: i) Luz al sótano (Visibilidad), ii) Sin cables (Local/Seguro), iii) Costo mínimo, iv) Flujo 'Deep Work' para el investigador inmersivo.",
+  "permissions": ["tabs", "activeTab", "scripting", "storage", "clipboardRead"],
+  "host_permissions": ["http://localhost:11434/*"],
+
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "TDE rev_1.4 - Asistente Local"
+  },
+  "commands": {
+    "open_stats": {
+      "suggested_key": { "default": "Ctrl+Shift+Y" },
+      "description": "Abrir estadísticas"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["icon.jpg", "stats.html", "stats.js", "chart.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

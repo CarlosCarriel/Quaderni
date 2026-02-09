@@ -19,5 +19,6 @@ prueba_semántica*
 *.tmp
 *.bak
 *.md
+!Readme.md
 *.txt
 ~$*

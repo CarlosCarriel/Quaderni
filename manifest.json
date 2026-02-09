@@ -1,23 +1,35 @@
 ﻿{
   "manifest_version": 3,
-  "name": "Aletheia rev_1.4 - Asistente Local",
-  "version": "1.4",
-  "description": "Arquitectura de Interfaz Dual para Ciencia de Datos. Integra un Panel de Control y un Lente Inmersivo (Overlay) con inferencia local hermética.",
-  "author": "Principios: i) Luz al sótano (Visibilidad), ii) Sin cables (Local/Seguro), iii) Costo mínimo, iv) Flujo 'Deep Work' para el investigador inmersivo.",
-  "permissions": ["tabs", "activeTab", "scripting", "storage", "clipboardRead"],
-  "host_permissions": ["http://localhost:11434/*"],
-
+  "name": "Quaderni",
+  "version": "1.1.0",
+  "description": "Asistente técnico local con IA (Edge Computing). Traduce, explica código y define términos sin conexión a servidores externos.",
+  "author": "CFCA",
+  "permissions": ["tabs", "activeTab", "scripting", "storage", "clipboardRead", "notifications"],
+  "host_permissions": [
+  "http://localhost:11434/*",
+  "http://127.0.0.1:11434/*"
+  ],
   "background": {
     "service_worker": "background.js"
   },
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "TDE rev_1.4 - Asistente Local"
+    "default_title": "Quaderni",
+    "default_icon": "icon.png"
   },
   "commands": {
     "open_stats": {
-      "suggested_key": { "default": "Ctrl+Shift+Y" },
+      "suggested_key": { "default": "Ctrl+Shift+S" },
       "description": "Abrir estadísticas"
+    },
+    "run_health_check": {
+      "suggested_key": { "default": "Ctrl+Shift+H" },
+      "description": "Comprobar salud de Ollama"
     }
   },
   "content_scripts": [
@@ -29,7 +41,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["icon.jpg", "stats.html", "stats.js", "chart.js"],
+      "resources": ["icon.png", "stats.html", "stats.js", "chart.js", "lib/network.js"],
       "matches": ["<all_urls>"]
     }
   ]

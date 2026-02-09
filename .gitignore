@@ -1,0 +1,23 @@
+# Logs personales (contienen info de infraestructura)
+*.log
+
+# pruebas
+prueba_semántica.txt
+
+# presentación para lectores de Cuadernos de...
+Sinopsis para amigos.txt
+
+# Script de deploy (contiene rutas hardcodeadas)
+deploy.ps1
+
+# Archivos de entorno y personales
+*.code-workspace
+.gitattributes
+prueba_semántica*
+
+# Archivos temporales
+*.tmp
+*.bak
+*.md
+*.txt
+~$*

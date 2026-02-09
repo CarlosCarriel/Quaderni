@@ -1,42 +1,53 @@
-// Aletheia rev_1.4 - Asistente Local
-// Componente: LENTE INMERSIVO (Overlay / Widget Contextual)
-// Función: Inyección en DOM, captura de eventos y despliegue HUD (Heads-Up Display)
-
-console.log('[CONTENT] Aletheia rev_1.4: selección de texto activo.');
+// QUADERNI 1.1.0 - Asistente Local
+//LENTE INMERSIVO (Overlay / Widget Contextual)
+const VERSION = '1.1.0';
+console.log(`[CONTENT] QUADERNI v${VERSION}: selección de texto activo.`);
 
 // 1. DICCIONARIO DE PROMPTS (Mapeo de intenciones)
 const INTENT_PROMPTS = {
-        'translate': (text) => 
-            `Task: Translate to Spanish.\n<text>${text}</text>\nSpanish:`,
-            
-        'translate_tech': (text) => 
-            `Translate to Spanish. Keep code/English terms.\n<text>${text}</text>\nSpanish:`,
-            
-        'explain': (text) => 
-            `Task: Explain code logic in Spanish (1 sentence).\n<code>${text}</code>\nExplanation:`,
-            
-        'define': (text) => 
-            `Task: Define term in Spanish (max 20 words).\n<term>${text}</term>\nDefinition:`,
+    'translate': (text) => 
+        `Translate to Spanish:\n${text}\nSpanish:`,
+    'translate_tech': (text) => 
+        `System: You are a technical translator. Translate to Spanish..\n` +
+        `Task: Translate to Technical Spanish.\n` +
+        `Rules:\n` +
+        `1. PRESERVE: Keep variable names, functions, APIs, acronyms in English.\n` +
+        `2. TRANSLATE: Translate comments and explanations.\n` +
+        `3. LANGUAGE PRIORITY: prefer Python. If input is code, keep its language.\n` +
+        `Input:\n<code_block>${text}</code_block>\n` +
+        `Output:`,
         
-        'translate_es': (text) => 
-            `You are a translator. ONLY translate. Do NOT explain, define, or interpret.\n`+
-            `Task: Translate EXACTLY this text to English. Word-for-word if possible.\n`+
-            `<text>${text}</text>\n` +
-            `ENGLISH TRANSLATION ONLY (no explanations):`,
+    'explain': (text) => 
+        `Task: Explain the functionality of this code snippet in Spanish (max 50 words).\n` +
+        `Target Audience: Junior Developer.\n` +
+        `Format: A single paragraph describing inputs, logic, and outputs.\n` +
+        `Code:\n<code>${text}</code>\n` +
+        `Explanation:`,
+        
+    'define': (text) => 
+        `You are a technical dictionary.\n` +
+        `Task: Define the following term in Spanish.\n` +
+        `Rules:\n` +
+        `1. Provide definition in Spanish ONLY. No English.\n` +
+        `2. Keep the definition concise (max 40 words).\n` +
+        `3. If it's a programming concept, explain its technical meaning.\n` +
+        `4. If it's a code term (variable, function), clarify its role.\n` +
+        `<term>${text}</term>\n` +
+        `Definition in Spanish:`,
+    
+    'translate_es': (text) => 
+        `Translate to English:\n${text}\nEnglish:`,
 
-        'synonym': (text) => 
-            `Task: Provide 3 technical synonyms or related terms in Spanish for the concept.\n` +
-            `Format: Comma separated list. No numbering.\n` +
-            `<term>${text}</term>\n` +
-            `Synonyms:`,
+    'synonym': (text) => 
+        `List 3 technical synonyms in Spanish (comma-separated):\n${text}\nSynonyms:`,
 };
+
 
 let activeTooltip = null;
 let activeIcon = null;
 
-// 2. LISTENER DE SELECCIÓN (El Ojo del Sistema)
+// 2. LISTENER DE SELECCIÓN
 document.addEventListener('mouseup', (event) => {
-    // Si el clic fue dentro de nuestro propio tooltip/icono, ignoramos para no cerrarlo
     if (event.target.closest('#tde-host-container')) return;
 
     // Limpiar UI anterior
@@ -57,7 +68,7 @@ document.addEventListener('mouseup', (event) => {
     }
 });
 
-// 3. UI: BOTÓN FLOTANTE (El Gatillo)
+// 3. UI: BOTÓN FLOTANTE
 function showFloatingIcon(x, y, text) {
     const container = createHost();
     
@@ -107,7 +118,6 @@ function showFloatingIcon(x, y, text) {
         btn.onmouseover = () => btn.style.background = 'rgba(255, 255, 255, 0.15)';
         btn.onmouseout = () => btn.style.background = 'transparent';
         
-        // EL MOMENTO CRÍTICO: CLICK -> BACKGROUND
         btn.onclick = () => handleAction(action.id, text, x, y);
         
         menu.appendChild(btn);
@@ -116,43 +126,11 @@ function showFloatingIcon(x, y, text) {
     container.appendChild(menu);
     activeIcon = menu;
 
-    // --- LÓGICA DE ARRASTRE (DRAG & DROP) PARA EL MENÚ ---
-    let isDragging = false;
-    let currentX, currentY, initialX, initialY;
-    let xOffset = 0, yOffset = 0;
-
-    menu.addEventListener("mousedown", dragStart);
-
-    function dragStart(e) {
-        if (e.target.tagName === 'BUTTON') return; // Permitir clic en botones
-        initialX = e.clientX - xOffset;
-        initialY = e.clientY - yOffset;
-        isDragging = true;
-        document.addEventListener("mousemove", drag);
-        document.addEventListener("mouseup", dragEnd);
-    }
-
-    function drag(e) {
-        if (isDragging) {
-            e.preventDefault();
-            currentX = e.clientX - initialX;
-            currentY = e.clientY - initialY;
-            xOffset = currentX;
-            yOffset = currentY;
-            menu.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
-        }
-    }
-
-    function dragEnd() {
-        initialX = currentX;
-        initialY = currentY;
-        isDragging = false;
-        document.removeEventListener("mousemove", drag);
-        document.removeEventListener("mouseup", dragEnd);
-    }
+    // Habilitar arrastre
+    makeDraggable(menu);
 }
 
-// 4. LÓGICA DE ENVÍO (El Puente)
+// 4. LÓGICA DE ENVÍO
 function handleAction(mode, text, x, y) {
     console.log(`[CONTENT] Acción disparada: ${mode}`);
     removeUI(); // Quitamos el menú
@@ -172,23 +150,31 @@ function handleAction(mode, text, x, y) {
     };
     const concepto = conceptoMap[mode] || mode;
 
-    // [FIX] Verificar si el contexto de la extensión sigue activo (evita el crash si recargaste la extensión)
+    // Verificación de actividad de la extensión para evitar errores en recarga.
     if (!chrome?.runtime?.id) {
         showTooltip(x, y, "⚠️ Extensión desconectada. Por favor, recarga esta página.");
         return;
     }
 
-    // ENVIAR MENSAJE AL BACKGROUND
+
     chrome.runtime.sendMessage({
         action: 'processRequest',
         prompt: finalPrompt,
-        mode: mode, // Para las estadísticas
-        interfaz: 'Overlay',      // ← Corregido: Esto es el Overlay
-        version: '1.4',           // ← Agregar: Versión constante
-        categoria: mode,          // ← Agregar: La categoría es el 'mode'
-        concepto: concepto,       // ← Modificado: Nombre legible
-        input: text               // ← Agregar: El texto original (INPUT)
+        metadata: {
+            mode: mode,
+            category: concepto,
+            interface: 'Overlay',
+            version: VERSION,
+            input: text
+        }
     }, (response) => {
+        // Validación crítica de conexión
+        if (chrome.runtime.lastError) {
+            removeUI();
+            showTooltip(x, y, "❌ Error: " + chrome.runtime.lastError.message);
+            return;
+        }
+
         if (response && response.success) {
             removeUI(); // Quitar el "Cargando..."
             showTooltip(x, y, response.result); // Mostrar resultado real
@@ -198,7 +184,7 @@ function handleAction(mode, text, x, y) {
         }
 });
 }
-// 5. UI: TOOLTIP DE RESPUESTA (El Resultado)
+// 5. UI: TOOLTIP DE RESPUESTA
 function showTooltip(x, y, content, isLoading = false) {
     const container = createHost();
     
@@ -305,50 +291,8 @@ function showTooltip(x, y, content, isLoading = false) {
     container.appendChild(tooltip);
     activeTooltip = tooltip;
 
-    // --- LÓGICA DE ARRASTRE (DRAG & DROP) ---
-    let isDragging = false;
-    let currentX;
-    let currentY;
-    let initialX;
-    let initialY;
-    let xOffset = 0;
-    let yOffset = 0;
-
-    tooltip.addEventListener("mousedown", dragStart);
-
-    function dragStart(e) {
-        // Evitar arrastrar si se hace clic en botones o texto seleccionable
-        if (e.target.tagName === 'BUTTON' || e.target === textDiv) return;
-        
-        initialX = e.clientX - xOffset;
-        initialY = e.clientY - yOffset;
-        isDragging = true;
-        
-        // Listeners globales temporales
-        document.addEventListener("mousemove", drag);
-        document.addEventListener("mouseup", dragEnd);
-    }
-
-    function drag(e) {
-        if (isDragging) {
-            e.preventDefault();
-            currentX = e.clientX - initialX;
-            currentY = e.clientY - initialY;
-            xOffset = currentX;
-            yOffset = currentY;
-            
-            // Usar transform para mejor rendimiento que top/left
-            tooltip.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
-        }
-    }
-
-    function dragEnd() {
-        initialX = currentX;
-        initialY = currentY;
-        isDragging = false;
-        document.removeEventListener("mousemove", drag);
-        document.removeEventListener("mouseup", dragEnd);
-    }
+    // Habilitar arrastre (evitando el área de texto seleccionable)
+    makeDraggable(tooltip, (e) => e.target !== textDiv);
 }
 
 // UTILIDADES
@@ -367,6 +311,44 @@ function removeUI() {
     if (host) host.innerHTML = '';
     activeIcon = null;
     activeTooltip = null;
+}
+
+function makeDraggable(element, conditionFn = () => true) {
+    let isDragging = false;
+    let currentX, currentY, initialX, initialY;
+    let xOffset = 0, yOffset = 0;
+
+    element.addEventListener("mousedown", dragStart);
+
+    function dragStart(e) {
+        // Evitar arrastrar si se hace clic en botones o si la condición falla
+        if (e.target.tagName === 'BUTTON' || !conditionFn(e)) return;
+        
+        initialX = e.clientX - xOffset;
+        initialY = e.clientY - yOffset;
+        isDragging = true;
+        document.addEventListener("mousemove", drag);
+        document.addEventListener("mouseup", dragEnd);
+    }
+
+    function drag(e) {
+        if (isDragging) {
+            e.preventDefault();
+            currentX = e.clientX - initialX;
+            currentY = e.clientY - initialY;
+            xOffset = currentX;
+            yOffset = currentY;
+            element.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
+        }
+    }
+
+    function dragEnd() {
+        initialX = currentX;
+        initialY = currentY;
+        isDragging = false;
+        document.removeEventListener("mousemove", drag);
+        document.removeEventListener("mouseup", dragEnd);
+    }
 }
 
 // Estilos globales para animación

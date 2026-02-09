@@ -1,6 +1,5 @@
-// Aletheia rev_1.4 - Asistente Local
-// Componente: PANEL DE CONTROL (La Montura)
-// Función: Interfaz explícita para operaciones complejas y gestión de estado.
+// QUADERNI 1.1.0 - Asistente Local
+// Componente: Panel de Control (Popup)
 
 document.addEventListener('DOMContentLoaded', () => {
     const inputText = document.getElementById('input-text');
@@ -30,14 +29,14 @@ document.addEventListener('DOMContentLoaded', () => {
             `Task: Define the following term in Spanish.\n` +
             `Rules:\n` +
             `1. Provide definition in Spanish ONLY. No English.\n` +
-            `2. Keep the definition concise (max 30 words).\n` +
+            `2. Keep the definition concise (max 100 words).\n` +
             `3. If it's a programming concept, explain its technical meaning.\n` +
             `4. If it's a code term (variable, function), clarify its role.\n` +
             `<term>${text}</term>\n` +
             `Definition in Spanish:`,
 
         'explain': (text) => 
-            `Task: Explain the functionality of this code snippet in Spanish (max 120 words).\n` +
+            `Task: Explain the functionality of this code snippet in Spanish (max 100 words).\n` +
             `Target Audience: Junior Developer.\n` +
             `Format: A single paragraph describing inputs, logic, and outputs.\n` +
             `Code:\n<code>${text}</code>\n` +
@@ -103,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 prompt: finalPrompt,
                 mode: mode,
                 interfaz: 'Popup',        // Identificador de origen
-                version: '1.4',
+                version: '1.1.0',
                 categoria: categoria,     // Categoría para la tabla (puede diferir de `mode`)
                 concepto: concepto,       // Concepto legible (Adiós N/A)
                 input: text,              // Texto original para registro
@@ -211,7 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('mouseup', () => isDragging = false);
 
     // ═══════════════════════════════════════════════════════════════════
-    // SECCIÓN 7: SINCRONIZACIÓN DE ESTADÍSTICAS (Popup Stats Module)
+    // SINCRONIZACIÓN DE ESTADÍSTICAS
     // ═══════════════════════════════════════════════════════════════════
     // Propósito: Sincronizar popup con chrome.storage.local en tiempo real
     

@@ -1,42 +1,48 @@
-﻿// Aletheia rev_1.4 - Asistente Local
+﻿// QUADERNI 1.1.0 - Asistente Local
 // ═══════════════════════════════════════════════════════════════════════════════
-// NATURALEZA DEL PROYECTO: ARQUITECTURA DE INTERFAZ DUAL
-// --------------------------------------------------------------------------
-// Este sistema implementa una "Arquitectura de Interfaz Dual" diseñada para 
-// el investigador inmersivo. Combina dos modos de interacción:
-// 1. Panel de Control (Popup): La "Montura" para operaciones explícitas.
-// 2. Widget Contextual (Overlay): El "Lente" in-page para flujo continuo.
-// 
-// El objetivo es eliminar la fricción del cambio de contexto (context switching)
-// y garantizar la hermeticidad absoluta de los datos (Privacidad Zero-Trust).
-// Al integrar Phi-3 Mini vía Ollama, operamos con latencia mínima y costo 
-// operativo nulo.
+/* Quaderni: Soberanía Computacional Local
+
+Quaderni es un sistema de asistencia técnica diseñado bajo el paradigma de Computación 
+en el Borde (Edge Computing). 
+
+Impacto y propósito
+
+Creado para quienes valoran la privacidad, el rendimiento y soberanía tecnológica. 
+Quaderni ofrece una solución local, accesible y resiliente. No necesita conectarse a
+la nube, ni 
+Recomendado para estudiantes de Ciencia de datos y docentes. 
+social busca ampliar las capacidades de:
+
+Comunidades y Escuelas fuera del radio urbano con conectividad limitada.
+
+Entornos que requieren seguridad total en el procesamiento.
+
+Usuarios con equipos computacionales limitados.
+
+ */
 //
-// GOBIERNO DE RECURSOS ("Panóptico"):
-// Ante la restricción de hardware local, el sistema se apoya en el script 
-// "Panóptico 1.0" (*.ps1) en PowerShell. Este guardián gestiona el ciclo de 
-// vida de los modelos, liberando VRAM/RAM de forma proactiva para mantener 
-// el equilibrio entre la inferencia de IA y el rendimiento del navegador.
-//
-// "Luz al sótano, sin cables, seguro y al mínimo costo."
+// CFCA
 // Diciembre 2025.
-// --------------------------------------------------------------------------
 // ═══════════════════════════════════════════════════════════════════════════════
-const OLLAMA_API_URL = "http://localhost:11434/api/generate";
+const OLLAMA_API_URL = "http://127.0.0.1:11434/api/generate";
 const TARGET_MODEL = "phi3:mini"; 
 
-// Derivar base URL para health checks
+// Base URL para health checks
 const OLLAMA_BASE = OLLAMA_API_URL.replace(/\/api\/.*$/i, '');
+// Variables para health check con memoria temporal
+let lastHealthCheckTime = 0;
+let lastHealthCheckResult = false;
+const HEALTH_CACHE_MS = 5000; // 5 segundos de memoria
 
-// Helper: fetch con timeout usando AbortController
-function fetchWithTimeout(url, options = {}, timeout = 15000) {
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeout);
-    options.signal = controller.signal;
-    return fetch(url, options).finally(() => clearTimeout(id));
+// Cargar utilidades de red (fetchWithTimeout, fetchWithRetry)
+try {
+    importScripts('lib/network.js');
+} catch (e) {
+    // Fallo de dependencia crítica.
+    console.error('[BACKGROUND] Fallo: No se pudo importar network.js:', e.message);
 }
 
-// Health check sencillo a Ollama (usa /api/tags como endpoint ligero)
+// Hace la petición real a la red para comprobar si Ollama responde correctamente.
 async function checkOllamaStatus(timeoutMillis = 3000) {
     try {
         const resp = await fetchWithTimeout(OLLAMA_BASE + '/api/tags', { method: 'GET' }, timeoutMillis);
@@ -44,6 +50,22 @@ async function checkOllamaStatus(timeoutMillis = 3000) {
     } catch (e) {
         return false;
     }
+}
+
+// 2. Gestiona la memoria temporal
+async function checkOllamaStatusCached(timeoutMillis = 3000) {
+    const now = Date.now();
+    
+    // Si la última comprobación fue hace menos de 5 segundos, devolvemos lo que ya sabíamos
+    if (now - lastHealthCheckTime < HEALTH_CACHE_MS) {
+        console.log('[HEALTH] ⚡ Usando resultado en caché:', lastHealthCheckResult);
+        return lastHealthCheckResult;
+    }
+    
+    // Si pasó el tiempo, hacemos la consulta real llamando a la "Obrera"
+    lastHealthCheckResult = await checkOllamaStatus(timeoutMillis);
+    lastHealthCheckTime = now;
+    return lastHealthCheckResult;
 }
 
 // Inicialización de estadísticas 
@@ -71,11 +93,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const origin = sender.tab ? `Tab ${sender.tab.id}` : 'Popup';
     console.log(`[BACKGROUND] Petición recibida desde: ${origin} | Acción: ${request.action}`);
 
+    // Permitir comprobaciones de salud desde popup o UI
+    if (request.action === 'checkHealth') {
+        checkOllamaStatusCached(3000).then((healthy) => {
+            sendResponse({ success: !!healthy });
+        }).catch(() => sendResponse({ success: false }));
+        return true;
+    }
+
     if (request.action === 'processRequest') {
-        // ✅ Estadísticas: Detectar interfaz automáticamente
+        // Estadísticas: Detectar interfaz automáticamente
         const interfaceType = (sender && sender.tab) ? 'Overlay' : 'Popup';
         handleOllamaRequest(request, sendResponse, interfaceType);
-        return true; // CRÍTICO: Mantiene el canal de comunicación abierto
+        return true; // Mantiene el canal de comunicación abierto
     }
 });
 
@@ -103,12 +133,10 @@ function getModelConfig(mode) {
     }
 }
 // ═══════════════════════════════════════════════════════════════════════════════
-// CONFIGURACIÓN DINÁMICA DE PARÁMETROS POR MODO
-// La configuración actual se encuentra basada en pruebas realizadas en diciembre 2025 
-// orientadas a satisfacer a un perfil ocupado de la mejora continua, control de la dimensión 
-// total del costo y la hermeticidad de los datos.
-// Para estos efectos, adicional a las pruebas realizadas, se consideró el informe técnico:
-// 'A Highly Capable Language Model Locally on Your Phone' de phi3:mini (publicado en 2024)
+// CONFIGURACIÓN DE PARÁMETROS POR MODO
+// La configuración está optimizada para equilibrar rendimiento y fidelidad
+// en un entorno de ejecución local (Edge). Cada modo tiene parámetros 
+// específicos para la tarea (ej. traducción, explicación de código).
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const MODEL_CONFIG = {
@@ -116,14 +144,14 @@ const MODEL_CONFIG = {
         temperature: 0.05,
         top_p: 0.6,
         top_k: 30,
-        num_predict: 100,
+        num_predict: 150,
         stop: ["Task:", "System:", "<|end|>", "Español:", "Spanish:"]
     },
     'translate_tech': {
         temperature: 0.09,
         top_p: 0.65,
         top_k: 35,
-        num_predict: 150,
+        num_predict: 100,
         stop: ["Task:", "System:", "<|end|>", "Español:", "Spanish:", "```"]
     },
     'explain': {
@@ -138,7 +166,7 @@ const MODEL_CONFIG = {
         top_p: 0.7,
         top_k: 40,
         num_predict: 300,
-        stop: ['Task:', 'System:', 'end', 'Español', 'Spanish']
+        stop: ['Task:', 'System:', '<|end|>', 'Español', 'Spanish']
     },
     'define': {
         temperature: 0.05,
@@ -162,8 +190,8 @@ const MODEL_CONFIG = {
     stop: ["Task:", "System:", "<|end|>",
         
         // Patrones de explicación que el modelo tiende a agregar
-        "\n\nExplanation:",    // CRÍTICO
-        "\n\nExample:",         // CRÍTICO
+        "\n\nExplanation:",
+        "\n\nExample:",
         "\n\nDefinition:",
         "\n\nNote:",
         "\n\nContext:",
@@ -186,36 +214,166 @@ const DEFAULT_CONFIG = {
     num_predict: 512,
     stop: ["Task:", "System:", "<|end|>"]
 };
-
+// NORMALIZACIÓN DE CATEGORÍAS
+/**
+ * Normaliza categorías inconsistentes a formato estándar
+ * @param {string} rawCategory - Categoría cruda del registro
+ * @param {object} context - Contexto adicional (concepto, input, output)
+ * @returns {string} Categoría normalizada
+ */
+function normalizeCategory(rawCategory, context = {}) {
+    if (!rawCategory) return 'unknown';
+    
+    const cat = rawCategory.toString().toLowerCase().trim();
+    
+    // Mapeo directo de variantes
+    const categoryMap = {
+        // Traducción EN->ES
+        'translate_es': 'translate_es',
+        'translate-es': 'translate_es',
+        'translatees': 'translate_es',
+        'trans_es': 'translate_es',
+        'en->es': 'translate_es',
+        'en→es': 'translate_es',
+        
+        // Traducción ES->EN
+        'translate_en': 'translate_en',
+        'translate-en': 'translate_en',
+        'translateen': 'translate_en',
+        'trans_en': 'translate_en',
+        'es->en': 'translate_en',
+        'es→en': 'translate_en',
+        'es_en': 'translate_en',
+        
+        // Traducción técnica
+        'translate_tech': 'translate_tech',
+        'translate-tech': 'translate_tech',
+        'translatetech': 'translate_tech',
+        'technical': 'translate_tech',
+        
+        // Traducción genérica
+        'translate': 'translate',
+        'translation': 'translate',
+        'traducir': 'translate',
+        'traducción': 'translate',
+        
+        // Sinónimos
+        'synonym': 'synonym',
+        'synonyms': 'synonym',
+        'sinonimo': 'synonym',
+        'sinónimo': 'synonym',
+        'sinonimos': 'synonym',
+        'sinónimos': 'synonym',
+        
+        // Definición
+        'define': 'define',
+        'definition': 'define',
+        'definir': 'define',
+        'definición': 'define',
+        
+        // Explicación
+        'explain': 'explain',
+        'explanation': 'explain',
+        'explicar': 'explain',
+        'explicación': 'explain',
+        
+        // Docstring
+        'docstring': 'docstring',
+        'doc': 'docstring',
+        'documentation': 'docstring',
+        'documentación': 'docstring'
+    };
+    
+    // Buscar mapeo directo
+    if (categoryMap[cat]) {
+        return categoryMap[cat];
+    }
+    
+    // Detección contextual para 'translate'
+    if (cat.includes('translate') || cat.includes('traducir')) {
+        const fields = [
+            context.concepto || '',
+            context.input || '',
+            context.output || ''
+        ].join(' ').toLowerCase();
+        
+        // Detectar ES->EN
+        if (fields.match(/\bes\b.{0,10}\ben\b/) && fields.indexOf('es') < fields.indexOf('en')) {
+            return 'translate_en';
+        }
+        
+        // Detectar EN->ES
+        if (fields.match(/\ben\b.{0,10}\bes\b/) && fields.indexOf('en') < fields.indexOf('es')) {
+            return 'translate_es';
+        }
+        
+        // Detectar técnica
+        if (fields.includes('técnica') || fields.includes('technical') || fields.includes('tech')) {
+            return 'translate_tech';
+        }
+        
+        return 'translate';
+    }
+    
+    // Búsqueda parcial
+    for (const [key, value] of Object.entries(categoryMap)) {
+        if (cat.includes(key) || key.includes(cat)) {
+            return value;
+        }
+    }
+    
+    // Fallback: categoría original limpia
+    return rawCategory.toString().trim();
+}
 /**
  * Maneja la solicitud a Ollama con parámetros dinámicos
  * @param {object} request - {mode, prompt}
  * @param {function} sendResponse - Callback para responder al cliente
  */
 async function handleOllamaRequest(request, sendResponse, interfaceType) {
-    const startTime = Date.now();
+    // 1. VALIDACIÓN DEFENSIVA (Blindaje de entrada)
+    if (!request || !request.prompt) {
+        const errorMsg = '❌ Solicitud inválida: no se proporcionó un prompt.';
+        console.error('[BACKGROUND]', errorMsg);
+        updateStats(request || {}, 'N/A', 0, false, interfaceType);
+        sendResponse({ success: false, error: errorMsg });
+        return;
+    }
+
     const cleanPrompt = request.prompt.trim();
+    if (cleanPrompt.length === 0) {
+        const errorMsg = '⚠️ El texto seleccionado está vacío.';
+        console.warn('[BACKGROUND]', errorMsg);
+        updateStats(request, 'N/A', 0, false, interfaceType);
+        sendResponse({ success: false, error: errorMsg });
+        return;
+    }
+
+    // 2. INICIO DE PROCESAMIENTO
+    const startTime = Date.now();
+    const metadata = request.metadata || {};
+    const mode = metadata.mode || request.mode || 'unknown';
     
-    // ✅ AGREGAR: Validar y normalizar mode
-    const mode = request.mode || 'unknown';
-    if (!request.mode) {
+    if (!mode || mode === 'unknown') {
         console.warn('[BACKGROUND] ⚠️ MODE no definido en request, usando fallback: "unknown"');
     }
 
     try {
-        console.log(`[BACKGROUND] Conectando a Ollama (${TARGET_MODEL})...`);
-        console.log(`[BACKGROUND] Modo: ${mode}`);
+        // 3. COMPROBACIÓN DE SALUD (Una sola vez, con Circuit Breaker)
+        const MAX_HEALTH_RETRIES = 3;
+        let healthy = false;
+        for (let attempt = 0; attempt < MAX_HEALTH_RETRIES; attempt++) {
+            if (await checkOllamaStatusCached(2000)) { healthy = true; break; }
+            const delay = 500 * Math.pow(2, attempt);
+            await new Promise(r => setTimeout(r, delay));
+        }
+
+        if (!healthy) {
+            throw new Error('Ollama no disponible (health check fallido)');
+        }
+
+        // 4. CONFIGURACIÓN DEL MODELO
         const modeConfig = getModelConfig(mode);
-        
-        console.log(`[BACKGROUND] Parámetros aplicados:`, {
-            temperature: modeConfig.temperature,
-            top_p: modeConfig.top_p,
-            top_k: modeConfig.top_k,
-            num_predict: modeConfig.num_predict,
-            stop_tokens_count: modeConfig.stop.length
-        });
-        
-        // Construir el body de la solicitud con parámetros dinámicos
         const requestBody = {
             model: TARGET_MODEL,
             prompt: cleanPrompt,
@@ -230,43 +388,24 @@ async function handleOllamaRequest(request, sendResponse, interfaceType) {
             }
         };
 
-        // Debug: Mostrar el payload exacto en desarrollo
-        console.log("[DEBUG] Payload completo:", JSON.stringify(requestBody, null, 2));
+        console.log("[DEBUG] Payload preparado para Ollama");
 
-        // Antes de ejecutar la solicitud, comprobar salud y reintentar si es necesario
-        const MAX_HEALTH_RETRIES = 3;
-        let healthy = false;
-        for (let attempt = 0; attempt < MAX_HEALTH_RETRIES; attempt++) {
-            if (await checkOllamaStatus(2000)) { healthy = true; break; }
-            // backoff exponencial
-            const delay = 500 * Math.pow(2, attempt);
-            await new Promise(r => setTimeout(r, delay));
-        }
-
-        if (!healthy) {
-            throw new Error('Ollama no disponible (health check fallido)');
-        }
-
-        // Ejecutar la solicitud a Ollama con timeout y protección
-        const response = await fetchWithTimeout(OLLAMA_API_URL, {
+        // 5. EJECUCIÓN DE LA SOLICITUD (Con reintentos de red)
+        const response = await fetchWithRetry(OLLAMA_API_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(requestBody)
-        }, 20000);
+        }, 20000, 3, 800);
 
         if (!response.ok) {
             throw new Error(`Ollama Error: ${response.status} ${response.statusText}`);
         }
 
         const data = await response.json();
-        
-        // Validación de respuesta vacía
-        if (!data.response) {
-            throw new Error("Ollama devolvió una respuesta vacía.");
-        }
+        if (!data.response) throw new Error("Ollama devolvió una respuesta vacía.");
 
+        // 6. PROCESAMIENTO DE SALIDA
         const latency = Date.now() - startTime;
-
         const cleanedResponse = data.response
             .trim()
             .replace(/^["']|["']$/g, '')
@@ -274,11 +413,9 @@ async function handleOllamaRequest(request, sendResponse, interfaceType) {
 
         console.log(`[BACKGROUND] ✓ Éxito. Latencia: ${latency}ms`);
 
-        // Guardar estadísticas
+        // 7. GUARDAR ESTADÍSTICAS Y RESPONDER
         await updateStats(mode, latency, true, cleanPrompt, cleanedResponse, interfaceType, request);
 
-
-        // Responder al cliente
         sendResponse({ 
             success: true, 
             result: cleanedResponse,
@@ -288,26 +425,36 @@ async function handleOllamaRequest(request, sendResponse, interfaceType) {
 
     } catch (error) {
         console.error("[BACKGROUND] ✗ Error Crítico:", error.message);
-        console.error("[BACKGROUND] Stack trace:", error.stack);
-        
-        // Registrar el fallo en estadísticas
-       await updateStats(mode, 0, false, cleanPrompt, "ERROR: " + error.message, interfaceType, request);
+    
+        let userFriendlyError = error.message;
+        if (error.message.includes("403") || error.message.includes("Failed to fetch")) {
+            userFriendlyError = "Fallo de conexión: Asegúrate de ejecutar 'lanzar_quaderni.bat'.";
+        }
 
-        // Responder con error (distingue Ollama no disponible de otros errores)
+        await updateStats(mode, 0, false, cleanPrompt, "ERROR: " + error.message, interfaceType, request);
+
         sendResponse({ 
             success: false, 
-            error: error.message.includes("Failed to fetch") 
-                ? "❌ No se detecta Ollama. ¿Ejecutaste ollama en de acuerdo con parámetros de 'Panóptico'? ¿asegúrate de ejecutar 'ollama serve'?" 
-                : `❌ Error: ${error.message}`,
+            error: `❌ ${userFriendlyError}`,
             mode: mode
         });
     }
 }
-
+// Función auxiliar para actualizar métricas de forma centralizada.
+function updateRoleStats(statsObj, key, latency) {
+    if (!statsObj[key]) {
+        statsObj[key] = { count: 0, totalLatency: 0, avgLatency: 0 };
+    }
+    statsObj[key].count++;
+    statsObj[key].totalLatency = (statsObj[key].totalLatency || 0) + latency;
+    // Cálculo centralizado: evita errores de redondeo en diferentes lugares
+    statsObj[key].avgLatency = (statsObj[key].totalLatency / statsObj[key].count).toFixed(0);
+}
 
 // Función Estadísticas
 async function updateStats(mode, latency, success, inputText, outputText, interfaceType, request = {}) {
     try {
+        const metadata = request.metadata || {};
         const data = await chrome.storage.local.get(['tde_stats']);
         let stats = data.tde_stats || {
             totalRequests: 0,
@@ -333,36 +480,27 @@ async function updateStats(mode, latency, success, inputText, outputText, interf
         
         // CREAR REGISTRO CON TODOS LOS DATOS NECESARIOS
         const now = new Date();
-        // Priorizar la categoría enviada por el request (si existe), si no, mapear desde el mode
-        let categoria;
-        if (request && request.categoria) {
-            categoria = request.categoria;
-        } else {
-            // Mapear modo a una categoría persistente y consistente
-            const m = (mode || '').toString().toLowerCase();
-            if (m === 'es->en' || m === 'es→en' || m === 'es_en') categoria = 'ES->EN';
-            else if (m === 'en->es' || m === 'en→es') categoria = 'translate_es';
-            else if (m === 'translate' || m === 'translate_es' || m === 'traducir') categoria = 'translate_es';
-            else if (m === 'translate_tech' || m === 'translate-tech' || m.includes('tech')) categoria = 'translate_tech';
-            else if (m === 'explain' || m.includes('explic')) categoria = 'explain';
-            else if (m === 'define' || m.includes('defin')) categoria = 'define';
-            else if (m === 'synonym' || m === 'synonyms' || m.includes('sinon')) categoria = 'synonym';
-            else if (m === 'docstring') categoria = 'docstring';
-            else categoria = mode || 'unknown';
-        }
+        const rawCategory = (request && request.categoria) ? request.categoria : mode;
+        const categoria = normalizeCategory(rawCategory, {
+            concepto: metadata.category || request.concepto,
+            input: inputText,
+            output: outputText
+        });
+        
+        console.log(`[STATS] Guardando registro. Modo: "${mode}", Categoría normalizada: "${categoria}"`);
 
-        const categoriaSource = (request && request.categoria) ? 'request' : 'modeMap';
-        console.log(`[STATS] Guardando nuevo registro. Modo: "${mode}", Categoria elegida: "${categoria}" (source: ${categoriaSource})`);
+        
+        const conceptValue = metadata.category || request.concepto;
         const newRecord = {
             timestamp: Date.now(),
             date: now.toLocaleDateString('es-CL'),           // DD-MM-YYYY
             time: now.toLocaleTimeString('es-CL'),           // HH:MM:SS
-            interfaz: interfaceType || request.interfaz || 'Unknown', 
-            version: chrome.runtime.getManifest().version,
+            interfaz: metadata.interface || interfaceType || request.interfaz || 'Unknown', 
+            version: metadata.version || chrome.runtime.getManifest().version,
             mode: mode || 'unknown',
             categoria: categoria,                      
-            concepto: (request.concepto && request.concepto !== 'N/A') ? request.concepto : (inputText ? inputText.substring(0, 100) : 'N/A'), 
-            input: request.input || inputText || 'N/A',       // Input original (si existe) o Prompt
+            concepto: (conceptValue && conceptValue !== 'N/A') ? conceptValue : (inputText ? inputText.substring(0, 100) : 'N/A'), 
+            input: metadata.input || request.input || inputText || 'N/A',       // Input original (si existe) o Prompt
             output: outputText || 'N/A',                      // Output COMPLETO
             latency: Math.round(latency),                     // ms entero
             latencySeconds: (latency / 1000).toFixed(3).replace('.', ','), // Segundos con 3 decimales
@@ -373,23 +511,10 @@ async function updateStats(mode, latency, success, inputText, outputText, interf
         stats.requests.unshift(newRecord);
         if (stats.requests.length > 500) stats.requests.pop();
         
-        // Actualizar estadísticas por modo
+        // Actualizar estadísticas (solo por categoría normalizada)
         stats.roleStats = stats.roleStats || {};
-        if (!stats.roleStats[mode]) {
-            stats.roleStats[mode] = { count: 0, totalLatency: 0, avgLatency: 0 };
-        }
-        stats.roleStats[mode].count++;
-        stats.roleStats[mode].totalLatency = (stats.roleStats[mode].totalLatency || 0) + latency;
-        stats.roleStats[mode].avgLatency = (stats.roleStats[mode].totalLatency / stats.roleStats[mode].count).toFixed(0);
-        // También contabilizar por categoría persistente cuando difiere del mode
-        if (categoria && categoria !== mode) {
-            if (!stats.roleStats[categoria]) {
-                stats.roleStats[categoria] = { count: 0, totalLatency: 0, avgLatency: 0 };
-            }
-            stats.roleStats[categoria].count++;
-            stats.roleStats[categoria].totalLatency = (stats.roleStats[categoria].totalLatency || 0) + latency;
-            stats.roleStats[categoria].avgLatency = (stats.roleStats[categoria].totalLatency / stats.roleStats[categoria].count).toFixed(0);
-        }
+        updateRoleStats(stats.roleStats, categoria, latency);
+     
         
         // Guardar en storage
         await chrome.storage.local.set({ tde_stats: stats });
@@ -402,12 +527,42 @@ async function updateStats(mode, latency, success, inputText, outputText, interf
         console.error("[STATS] Error guardando estadísticas:", e);
     }
 }
-// ===== MANEJO DE COMANDOS =====
+// ===== MANEJO DE COMANDOS DE TECLADO =====
+const COMMAND_HANDLERS = {
+    'open_stats': () => {
+        chrome.tabs.create({ url: chrome.runtime.getURL('stats.html') });
+        console.log('[BACKGROUND] Dashboard de estadísticas abierto.');
+    },
+    'run_health_check': async () => {
+        // Usamos la versión Cached para ser eficientes
+        const healthy = await checkOllamaStatusCached(3000);
+        
+        const title = healthy ? 'Quaderni: Conectado' : 'Quaderni: Error de Enlace';
+        const message = healthy 
+            ? `Motor local activo en ${OLLAMA_BASE}` 
+            : `No se detecta respuesta en ${OLLAMA_BASE}. Verifica que el archivo .bat esté ejecutándose.`;
+
+        if (chrome.notifications) {
+            chrome.notifications.create({
+                type: 'basic',
+                iconUrl: chrome.runtime.getURL('icon.png'),
+                title: title,
+                message: message,
+                priority: 2
+            });
+        } else {
+            console.log(`[HEALTH] ${title}: ${message}`);
+        }
+    }
+};
+
 if (chrome.commands) {
     chrome.commands.onCommand.addListener((command) => {
-      if (command === 'open_stats') {
-        chrome.tabs.create({ url: chrome.runtime.getURL('stats.html') });
-        console.log('BACKGROUND: Dashboard abierto por comando');
-      }
+        const handler = COMMAND_HANDLERS[command];
+        if (handler) {
+            handler();
+        } else {
+            console.warn(`[BACKGROUND] Comando no reconocido: ${command}`);
+        }
     });
 }

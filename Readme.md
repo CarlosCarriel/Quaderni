@@ -74,6 +74,6 @@ El objetivo es proveer una herramienta útil para la comunidad educativa y profe
 
 ---
 
-**Versión**: 1.1.0 (Lotus Edition)  
+**Versión**: 1.1.0
 **Última actualización**: 2026-02-09  
 **Autor**: Carlos Carriel Álvarez

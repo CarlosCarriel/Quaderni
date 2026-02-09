@@ -1,7 +1,6 @@
-# Quaderni
-**Asistente de IA Local para Ciencia de Datos y Desarrollo Python**
-
 ![Logo Quaderni](img/logo.png)
+# Quaderni 
+**Asistente de IA Local para Ciencia de Datos y Desarrollo Python**
 
 Quaderni es una extensión de navegador diseñada para ofrecer asistencia técnica en tiempo real sin depender de conexión a internet ni de APIs externas. Utiliza modelos de lenguaje ejecutados localmente (vía Ollama) para garantizar la privacidad de los datos y un rendimiento ágil con configuraciones modestas.
 
@@ -27,7 +26,7 @@ Esta herramienta actúa como una capa de asistencia "en la punta del mouse", per
 | ![Explicación de Código](img/img_ex1.png) | ![Traducción Técnica](img/img_ex2.png) |
 
 **Dashboard y Análisis de Rendimiento:**
-Visualización en tiempo real de métricas de latencia y éxito de las últimas 20 consultas. El usuario usuario puede analizar sus propios datos, estudiar los tiempos de respuesta de los modelos locales y ajustar sus prompts (instrucciones) para optimizar los resultados según sus objetivos.
+Visualización en tiempo real de métricas de latencia y éxito de las últimas 20 consultas. El usuario puede analizar sus propios datos, estudiar los tiempos de respuesta de los modelos locales y ajustar sus prompts (instrucciones) para optimizar los resultados según sus objetivos.
 
 ![Panel de Estadísticas](img/img_panel.png)
 
@@ -43,13 +42,16 @@ Visualización en tiempo real de métricas de latencia y éxito de las últimas 
     ```
 
 ### 2. Instalación de la Extensión
-1. Clona este repositorio:
+1. Clonar Quaderni  
    ```bash
-   git clone [https://github.com/CarlosCarriel/quaderni.git](https://github.com/CarlosCarriel/quaderni.git)
-    ```
-2.  Abre tu navegador (Brave, Chrome, Edge) y ve a `chrome://extensions/`.
-3.  Activa el **Modo de desarrollador** (esquina superior derecha).
-4.  Haz clic en **Cargar descomprimida** y selecciona la carpeta del proyecto `quaderni`.
+   git clone
+   https://github.com/CarlosCarriel/Quaderni.git
+   cd Quaderni
+   ```
+
+3.  Abre tu navegador (Brave, Chrome, Edge) y ve a `chrome://extensions/`.
+4.  Activa el **Modo de desarrollador** (esquina superior derecha).
+5.  Haz clic en **Cargar descomprimida** y selecciona la carpeta del proyecto `quaderni`.
 
 ### 3. Ejecución
 Para asegurar la comunicación entre el navegador y el modelo local, utiliza el script de lanzamiento incluido en la carpeta:
@@ -64,7 +66,7 @@ Quaderni forma parte de una serie de herramientas diseñadas para la autonomía 
 
 ---
 
-## 🤝 Contribuciones y Comunidad
+## Contribuciones y Comunidad
 
 Este proyecto es una iniciativa personal de código abierto (Open Source), compartida bajo licencia **MIT**.
 

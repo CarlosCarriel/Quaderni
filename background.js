@@ -2,22 +2,17 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 /* Quaderni: Soberanía Computacional Local
 
-Quaderni es un sistema de asistencia técnica diseñado bajo el paradigma de Computación 
-en el Borde (Edge Computing). 
+Quaderni es un sistema de asistencia técnica local diseñado bajo el paradigma de 
+Computación en el Borde (Edge Computing), optimizado para máxima productividad 
+con recursos mínimos y mantenimiento cero.
 
-Impacto y propósito
-
-Creado para quienes valoran la privacidad, el rendimiento y soberanía tecnológica. 
-Quaderni ofrece una solución local, accesible y resiliente. No necesita conectarse a
-la nube, ni 
-Recomendado para estudiantes de Ciencia de datos y docentes. 
-social busca ampliar las capacidades de:
-
-Comunidades y Escuelas fuera del radio urbano con conectividad limitada.
-
-Entornos que requieren seguridad total en el procesamiento.
-
-Usuarios con equipos computacionales limitados.
+Creado para estudiantes de ciencia de datos y docentes que valoran privacidad total,
+rendimiento soberano y flujos ininterrumpidos, Quaderni ofrece respuestas instantáneas 
+(3s promedio) sin salir de Jupyter —docstrings, explicaciones técnicas y traducciones— 
+utilizando solo 8GB RAM total, sin GPU ni conexión a la nube (requisitos mínimos). 
+Democratiza la IA para comunidades rurales con conectividad limitada, entornos de 
+seguridad crítica y usuarios con hardware reacondicionado, transformando laptops 
+obsoletas en estaciones de trabajo productivas.
 
  */
 //

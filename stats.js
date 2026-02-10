@@ -21,7 +21,7 @@ let lastLoadedStats = null;
 
 // ============ CONFIG (Modo liviano) ============
 const ENABLE_CHARTS = true; //cambiar a false para desactivar gráficos.
-const MAX_HISTORY_ROWS = 20;
+const MAX_HISTORY_ROWS = 30;
 
 // SISTEMA DE FILTRADO
 /**

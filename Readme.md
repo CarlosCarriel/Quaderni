@@ -26,7 +26,7 @@ Esta herramienta actúa como una capa de asistencia "en la punta del mouse", per
 | ![Explicación de Código](img/img_ex1.png) | ![Traducción Técnica](img/img_ex2.png) |
 
 **Dashboard y Análisis de Rendimiento:**
-Visualización en tiempo real de métricas de latencia y éxito de las últimas 20 consultas. El usuario puede analizar sus propios datos, estudiar los tiempos de respuesta de los modelos locales y ajustar sus prompts (instrucciones) para optimizar los resultados según sus objetivos.
+Visualización en tiempo real de latencia, tasa de éxito y las últimas 30 consultas ejecutadas. Además, Quaderni mantiene un historial completo de uso que puedes exportar en formato CSV o JSON para analizar tus propios datos, estudiar la evolución de los tiempos de respuesta de tus modelos locales y ajustar prompts o configuraciones según tus objetivos.
 
 ![Panel de Estadísticas](img/img_panel.png)
 
